@@ -14,7 +14,7 @@
   <a class="skip-link" href="#messageInput">Skip to message box</a>
   <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
 
-  <main class="shell">
+  <div id="authGate" class="auth-gate"><div class="auth-card glass"><div class="ice">❄</div><h1>FROSTLINK</h1><p>Sign in before entering the channel.</p><input id="gateEmail" placeholder="Email"><input id="gateUsername" placeholder="Username (only for new accounts)"><input id="gatePassword" type="password" placeholder="Password"><div class="auth-gate-actions"><button id="gateLogin" type="button" class="send-editor">Log in</button><button id="gateRegister" type="button" class="link-btn">Create account</button></div><small id="gateStatus"></small></div></div><main id="appShell" class="shell hidden">
     <header class="topbar glass">
       <div class="brand"><span class="ice" aria-hidden="true">❄</span><div><strong>FROSTLINK</strong><small id="roomName">PRIVATE MEDIA CHANNEL</small></div></div>
       <div class="status">
@@ -54,7 +54,6 @@
         <button type="button" id="attachBtn" class="icon-btn" title="Attach files" aria-label="Attach files">＋</button>
         <button type="button" id="emojiBtn" class="icon-btn" title="Emoji" aria-label="Insert emoji" aria-haspopup="true" aria-expanded="false">🙂</button>
         <button type="button" id="gifBtn" class="icon-btn gif-btn" title="Search GIPHY" aria-label="Search and send a GIF">GIF</button>
-        <button type="button" id="editImageBtn" class="icon-btn edit-image-btn" title="Edit picture" aria-label="Edit picture to send or react">✎</button>
         <div id="editDropZone" class="edit-drop" role="button" tabindex="0" title="Drop an image here to edit">EDIT</div>
         <label class="sr-only" for="messageInput">Message</label>
         <textarea id="messageInput" rows="1" placeholder="Type a message, paste a URL, or drop media…"></textarea>
@@ -65,7 +64,7 @@
       <div class="composer-hint">Images · GIFs · video/audio · PDFs · any file · direct media URLs · embeds · replies · edit &amp; delete · emoji/image reactions · MyInstants sounds</div>
     </section>
   </main>
-  <aside id="starPanel" class="star-panel glass hidden" aria-label="Saved items"><div class="star-head"><b>★ SAVED</b><button id="starClose" class="icon-btn ghost" type="button">×</button></div><div class="star-tabs" id="starTabs"></div><div class="star-actions"><button id="starAddTab" type="button" class="link-btn">＋ Tab</button><button id="starRenameTab" type="button" class="link-btn">Rename</button></div><div id="starItems" class="star-items"></div></aside>
+  <aside id="starPanel" class="star-panel glass hidden" aria-label="Saved items"><div class="star-head"><b>★ SAVED</b><button id="starClose" class="icon-btn ghost" type="button">×</button></div><div class="star-tabs" id="starTabs"></div><div class="star-actions"><button id="starAddTab" type="button" class="link-btn">＋ Tab</button><button id="starRenameTab" type="button" class="link-btn">Rename tab</button><button id="starDeleteTab" type="button" class="link-btn">Delete tab</button><button id="starAddDevice" type="button" class="link-btn">＋ Device file</button><button id="starAddLink" type="button" class="link-btn">＋ Link</button><input id="starDeviceInput" type="file" hidden></div><div id="starItems" class="star-items"></div></aside>
   <dialog id="mediaPreview"><div class="dialog-inner media-preview"><button id="mediaPreviewClose" class="close">×</button><h2 id="mediaPreviewTitle">PREVIEW</h2><div id="mediaPreviewBody"></div></div></dialog>
   <dialog id="authDialog"><div class="dialog-inner auth-dialog"><button id="authClose" class="close">×</button><h2>FROSTLINK ACCOUNT</h2><p>Use a major email provider and one account per email.</p><input id="authEmail" placeholder="Email"><input id="authUsername" placeholder="Username"><input id="authPassword" type="password" placeholder="Password (8+ characters)"><div class="editor-footer"><button id="authRegister" class="send-editor" type="button">Create account</button><button id="authLogin" class="link-btn" type="button">Log in</button></div><small id="authStatus"></small></div></dialog>
 
@@ -156,16 +155,11 @@
   <dialog id="settings" aria-labelledby="settingsTitle">
     <div class="dialog-inner">
       <button class="close" id="closeSettings" aria-label="Close settings">×</button>
-      <h2 id="settingsTitle">FROSTLINK CONFIG</h2>
-      <p>Networking is handled by Tailscale. GIPHY, if enabled, is proxied through PC1 so the API key never enters the browser.</p>
-      <div class="setting"><b>Display name</b>
-        <span class="setting-edit"><input id="nameInput" maxlength="40" /><button id="saveNameBtn" type="button">Save</button></span>
-      </div>
+      <h2 id="settingsTitle">FROSTLINK SETTINGS</h2>
+      <p>Account identity is locked to the signed-in account.</p>
+      <div class="setting"><b>Account name</b><span id="accountNameSetting">Managed by your account</span></div>
       <div class="setting"><b>Desktop notifications</b><button id="notifyBtn" class="link-btn" type="button">Enable</button></div>
       <div class="setting"><b>Chat background</b><span class="setting-edit"><input id="bgColorInput" type="color" value="#020812"><button id="saveBgBtn" type="button">Save</button><button id="resetBgBtn" type="button" class="link-btn">Reset</button></span></div>
-      <div class="setting"><b>Server port</b><span>3000</span></div>
-      <div class="setting"><b>Persistent history</b><span>messages.json</span></div>
-      <div class="setting"><b>Remote access</b><span>Tailscale</span></div>
       <div class="setting"><b>Clear chat</b><button id="clearChatBtn" class="danger-btn" type="button">Clear all messages</button></div>
     </div>
   </dialog>
