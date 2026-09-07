@@ -715,7 +715,7 @@ function addReactionPictureButton(){
 const originalOpenReactPicker=openReactPicker;
 openReactPicker=function(anchor,msgId){originalOpenReactPicker(anchor,msgId);addReactionPictureButton()};
 
-editImageBtn.onclick=()=>openImageFilePicker('send');// GIPHY picker — API key stays on PC1 in .env; the browser only receives GIF results.
+editDropZone?.addEventListener('click',()=>openImageFilePicker('send'));// GIPHY picker — API key stays on PC1 in .env; the browser only receives GIF results.
 gifBtn.onclick=()=>{gifPicker.showModal();gifSearch.focus();if(!gifResults.children.length)searchGifs('trending')};
 gifClose.onclick=()=>gifPicker.close();
 gifSearchBtn.onclick=()=>searchGifs(gifSearch.value.trim()||'trending');
