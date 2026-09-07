@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#020812" />
+  <title>FROSTLINK</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/runtime-config.js"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-a" aria-hidden="true"></div><div class="ambient ambient-b" aria-hidden="true"></div>
+  <a class="skip-link" href="#messageInput">Skip to message box</a>
+  <div id="liveRegion" class="sr-only" role="status" aria-live="polite"></div>
+
+  <main class="shell">
+    <header class="topbar glass">
+      <div class="brand"><span class="ice" aria-hidden="true">❄</span><div><strong>FROSTLINK</strong><small id="roomName">PRIVATE MEDIA CHANNEL</small></div></div>
+      <div class="status">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="statusText">CONNECTING</span>
+        <button id="starPanelBtn" class="icon-btn ghost" type="button" title="Saved items" aria-label="Open saved items">★</button><button id="authBtn" class="icon-btn ghost" type="button" title="Account" aria-label="Account">◉</button><button id="settingsBtn" class="icon-btn ghost" type="button" title="Settings" aria-label="Open settings">⚙</button>
+      </div>
+    </header>
+
+    <section class="chat glass" aria-label="Chat">
+      <div class="chat-head">
+        <div><h1>Main</h1><p id="nodeSub">You are <b id="nodeName">this device</b> · persistent · private</p></div>
+        <span class="shield">⌁ PRIVATE</span>
+      </div>
+
+      <div id="messages" class="messages" role="log" aria-label="Message history"></div>
+      <div id="typing" class="typing" aria-live="polite"></div>
+      <button id="bottomBtn" class="bottom-jump hidden" type="button" title="Jump to latest messages">↓ <span>Latest</span></button>
+      <div id="newMessagesIndicator" class="new-messages-indicator hidden" role="status" aria-live="polite">New messages <b id="newMessagesCount">0</b></div>
+      <div id="dropzone" class="dropzone hidden" aria-hidden="true">DROP FILES INTO THE FROST</div>
+
+      <div id="replyBar" class="reply-bar hidden">
+        <span aria-hidden="true">↩</span><span id="replyText"></span>
+        <button id="cancelReply" type="button" aria-label="Cancel reply">×</button>
+      </div>
+      <div id="embedBar" class="reply-bar hidden">
+        <span aria-hidden="true">▣</span><input id="embedInput" placeholder="Paste an embeddable video URL…" />
+        <button id="sendEmbedBtn" type="button">Send</button><button id="cancelEmbed" type="button" aria-label="Cancel embed">×</button>
+      </div>
+      <div id="editBar" class="reply-bar hidden">
+        <span aria-hidden="true">✏</span><span>Editing message…</span>
+        <button id="cancelEdit" type="button" aria-label="Cancel edit">×</button>
+      </div>
+
+      <form id="composer" class="composer">
+        <input id="fileInput" type="file" multiple hidden aria-hidden="true" />
+        <button type="button" id="attachBtn" class="icon-btn" title="Attach files" aria-label="Attach files">＋</button>
+        <button type="button" id="emojiBtn" class="icon-btn" title="Emoji" aria-label="Insert emoji" aria-haspopup="true" aria-expanded="false">🙂</button>
+        <button type="button" id="gifBtn" class="icon-btn gif-btn" title="Search GIPHY" aria-label="Search and send a GIF">GIF</button>
+        <button type="button" id="editImageBtn" class="icon-btn edit-image-btn" title="Edit picture" aria-label="Edit picture to send or react">✎</button>
+        <div id="editDropZone" class="edit-drop" role="button" tabindex="0" title="Drop an image here to edit">EDIT</div>
+        <label class="sr-only" for="messageInput">Message</label>
+        <textarea id="messageInput" rows="1" placeholder="Type a message, paste a URL, or drop media…"></textarea>
+        <button type="button" id="soundBtn" class="icon-btn" title="MyInstants sounds" aria-label="Search MyInstants sounds">🔊</button>
+        <button type="button" id="embedBtn" class="icon-btn" title="Embed a video or media link" aria-label="Embed a video link">▣</button>
+        <button type="submit" class="send" aria-label="Send message">➤</button>
+      </form>
+      <div class="composer-hint">Images · GIFs · video/audio · PDFs · any file · direct media URLs · embeds · replies · edit &amp; delete · emoji/image reactions · MyInstants sounds</div>
+    </section>
+  </main>
+  <aside id="starPanel" class="star-panel glass hidden" aria-label="Saved items"><div class="star-head"><b>★ SAVED</b><button id="starClose" class="icon-btn ghost" type="button">×</button></div><div class="star-tabs" id="starTabs"></div><div class="star-actions"><button id="starAddTab" type="button" class="link-btn">＋ Tab</button><button id="starRenameTab" type="button" class="link-btn">Rename</button></div><div id="starItems" class="star-items"></div></aside>
+  <dialog id="mediaPreview"><div class="dialog-inner media-preview"><button id="mediaPreviewClose" class="close">×</button><h2 id="mediaPreviewTitle">PREVIEW</h2><div id="mediaPreviewBody"></div></div></dialog>
+  <dialog id="authDialog"><div class="dialog-inner auth-dialog"><button id="authClose" class="close">×</button><h2>FROSTLINK ACCOUNT</h2><p>Use a major email provider and one account per email.</p><input id="authEmail" placeholder="Email"><input id="authUsername" placeholder="Username"><input id="authPassword" type="password" placeholder="Password (8+ characters)"><div class="editor-footer"><button id="authRegister" class="send-editor" type="button">Create account</button><button id="authLogin" class="link-btn" type="button">Log in</button></div><small id="authStatus"></small></div></dialog>
+
+
+  <div id="emojiPicker" class="popover hidden" role="dialog" aria-label="Emoji picker"></div>
+  <dialog id="soundPicker" aria-labelledby="soundPickerTitle">
+    <div class="dialog-inner picker sound-picker">
+      <button class="close" id="soundClose" aria-label="Close sound picker">×</button>
+      <h2 id="soundPickerTitle">MYINSTANTS</h2>
+      <div class="search-row"><input id="soundSearch" placeholder="Search sounds…"><button id="soundSearchBtn" type="button">Search</button></div>
+      <div id="soundResults" class="sound-results"></div>
+    </div>
+  </dialog>
+  <dialog id="reactionImageViewer" aria-labelledby="reactionImageTitle">
+    <div class="dialog-inner reaction-image-viewer"><button class="close" id="reactionImageClose" aria-label="Close picture reaction">×</button><h2 id="reactionImageTitle">PICTURE REACTION</h2><img id="reactionImageView" alt="Picture reaction"></div>
+  </dialog>
+  <div id="reactPicker" class="popover hidden" role="dialog" aria-label="React with emoji"></div>
+
+  <dialog id="imageEditor" aria-labelledby="imageEditorTitle">
+    <div class="dialog-inner image-editor">
+      <button class="close" id="editorClose" aria-label="Close image editor">×</button>
+      <div class="editor-head">
+        <div>
+          <h2 id="imageEditorTitle">FROST EDITOR</h2>
+          <p id="editorModeText">Draw, add emoji or text, then export the picture.</p>
+        </div>
+        <div class="editor-actions">
+          <button id="editorUndo" type="button" class="link-btn">Undo</button><button id="editorRedo" type="button" class="link-btn">Redo</button>
+          <button id="editorClearMarks" type="button" class="link-btn">Clear marks</button>
+        </div>
+      </div>
+      <div class="editor-layout">
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="editorCanvas" width="900" height="600" aria-label="Editable picture canvas"></canvas>
+          <div id="editorCanvasHint" class="canvas-hint">Drop an image here</div>
+        </div>
+        <aside class="editor-panel">
+          <div class="editor-tools">
+            <button type="button" class="editor-tool active" data-tool="select">↖ Select</button>
+            <button type="button" class="editor-tool" data-tool="brush">🖌 Brush</button>
+            <button type="button" class="editor-tool" data-tool="eraser">⌫ Eraser</button>
+            <button type="button" class="editor-tool" data-tool="emoji">😀 Emoji</button><button type="button" id="editorAddImage" class="editor-tool">🖼 Add image</button>
+          </div>
+          <label class="editor-label">Text
+            <input id="editorTextInput" type="text" maxlength="180" placeholder="Type text…">
+          </label>
+          <button id="editorAddText" type="button" class="link-btn wide">＋ Add text</button>
+          <div class="editor-row">
+            <label>Colour <input id="editorColor" type="color" value="#ffffff"></label>
+            <label>Size <input id="editorSize" type="range" min="8" max="180" value="42"><span id="brushPreview" class="brush-preview"></span></label>
+          </div>
+          <div class="editor-row"><label>Outline <input id="editorOutlineColor" type="color" value="#000000"></label><label>Outline size <input id="editorOutlineSize" type="range" min="0" max="24" value="0"></label></div><label class="editor-check"><input id="editorFillEnabled" type="checkbox" checked> Text fill</label><label class="editor-label">Font
+            <select id="editorFont">
+              <option value="Inter, system-ui, sans-serif">Inter</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Impact, sans-serif">Impact</option>
+              <option value="Courier New, monospace">Courier New</option>
+            </select>
+          </label>
+          <p class="editor-help">Drag emoji/text to move it. Drag the corner handle to resize it. The eraser removes only your brush marks; it never touches the original image.</p>
+          <div class="editor-emoji-wrap">
+            <emoji-picker id="editorEmojiPicker" class="editor-emoji-picker"></emoji-picker>
+          </div>
+          <div class="editor-footer">
+            <button id="editorSend" type="button" class="send-editor">Send picture</button>
+            <button id="editorReact" type="button" class="link-btn">React with picture</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="gifPicker" aria-labelledby="gifPickerTitle">
+    <div class="dialog-inner picker">
+      <button class="close" id="gifClose" aria-label="Close GIF picker">×</button>
+      <h2 id="gifPickerTitle">GIPHY</h2>
+      <div class="search-row">
+        <label class="sr-only" for="gifSearch">Search GIFs</label>
+        <input id="gifSearch" placeholder="Search GIFs…"/>
+        <button id="gifSearchBtn" type="button">Search</button>
+      </div>
+      <div id="gifResults" class="gif-results"></div>
+      <div class="giphy-credit">Powered by GIPHY</div>
+    </div>
+  </dialog>
+
+  <dialog id="settings" aria-labelledby="settingsTitle">
+    <div class="dialog-inner">
+      <button class="close" id="closeSettings" aria-label="Close settings">×</button>
+      <h2 id="settingsTitle">FROSTLINK CONFIG</h2>
+      <p>Networking is handled by Tailscale. GIPHY, if enabled, is proxied through PC1 so the API key never enters the browser.</p>
+      <div class="setting"><b>Display name</b>
+        <span class="setting-edit"><input id="nameInput" maxlength="40" /><button id="saveNameBtn" type="button">Save</button></span>
+      </div>
+      <div class="setting"><b>Desktop notifications</b><button id="notifyBtn" class="link-btn" type="button">Enable</button></div>
+      <div class="setting"><b>Chat background</b><span class="setting-edit"><input id="bgColorInput" type="color" value="#020812"><button id="saveBgBtn" type="button">Save</button><button id="resetBgBtn" type="button" class="link-btn">Reset</button></span></div>
+      <div class="setting"><b>Server port</b><span>3000</span></div>
+      <div class="setting"><b>Persistent history</b><span>messages.json</span></div>
+      <div class="setting"><b>Remote access</b><span>Tailscale</span></div>
+      <div class="setting"><b>Clear chat</b><button id="clearChatBtn" class="danger-btn" type="button">Clear all messages</button></div>
+    </div>
+  </dialog>
+
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.26.3/index.js"></script>
+  <script src="/socket.io/socket.io.js"></script><script src="/app.js"></script>
+</body>
+</html>

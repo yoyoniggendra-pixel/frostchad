@@ -1,0 +1,20 @@
+{
+  "name": "frostlink",
+  "version": "2.0.0",
+  "private": true,
+  "description": "FROSTLINK Vercel frontend + persistent realtime backend edition.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "socket.io": "^4.8.1",
+    "@supabase/supabase-js": "^2.57.4",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
