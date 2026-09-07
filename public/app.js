@@ -20,8 +20,6 @@ const settings = document.getElementById('settings');
 const settingsBtn = document.getElementById('settingsBtn');
 const closeSettings = document.getElementById('closeSettings');
 const clearChatBtn = document.getElementById('clearChatBtn');
-const nameInput = document.getElementById('nameInput');
-const saveNameBtn = document.getElementById('saveNameBtn');
 const notifyBtn = document.getElementById('notifyBtn');
 const replyBar = document.getElementById('replyBar');
 let replyText = document.getElementById('replyText');
@@ -62,7 +60,7 @@ if (!sender) {
   localStorage.setItem('frostlink_sender', sender);
 }
 document.getElementById('nodeName').textContent = sender;
-nameInput.value = sender;
+
 
 let typingTimer;
 let rendered = new Set();
@@ -492,13 +490,6 @@ socket.on('typing',x=>{typingEl.textContent=x.active&&x.sender!==sender?`${x.sen
 
 settingsBtn.onclick=()=>settings.showModal();closeSettings.onclick=()=>settings.close();
 clearChatBtn.onclick=()=>{if(confirm('Clear the entire Frostlink chat history for everyone? This cannot be undone.'))socket.emit('chat:clear')};
-saveNameBtn.onclick=()=>{
-  const v=nameInput.value.trim().slice(0,40);
-  if(!v) return;
-  sender=v; localStorage.setItem('frostlink_sender', sender);
-  document.getElementById('nodeName').textContent=sender;
-  rerenderAll(window.__frostHistory||[]);
-};
 notifyBtn.onclick=async ()=>{
   if(!('Notification' in window)){ alert('Notifications are not supported in this browser.'); return; }
   const perm = await Notification.requestPermission();
@@ -788,15 +779,38 @@ fetch(`${API_BASE}/api/config`).then(r=>r.json()).then(c=>{
 });
 
 
-// v2 saved tabs + account shell. Saved data is local to the browser; message links remain jumpable.
+// Saved tabs: messages, links and local device-file references.
 const starPanel=document.getElementById('starPanel'),starTabs=document.getElementById('starTabs'),starItems=document.getElementById('starItems');
 let savedStore=JSON.parse(localStorage.getItem('frostlink_saved_tabs')||'{"tabs":[{"id":"t1","name":"Saved","items":[]}],"active":"t1"}');
 function persistSaved(){localStorage.setItem('frostlink_saved_tabs',JSON.stringify(savedStore));}
-function renderSaved(){const tabs=savedStore.tabs||[];if(!tabs.length)savedStore={tabs:[{id:'t1',name:'Saved',items:[]}],active:'t1'};if(!tabs.some(t=>t.id===savedStore.active))savedStore.active=tabs[0].id;starTabs.innerHTML=tabs.map(t=>`<button class="star-tab ${t.id===savedStore.active?'active':''}" data-tab="${escapeAttr(t.id)}">${escapeHtml(t.name)}</button>`).join('');const tab=tabs.find(t=>t.id===savedStore.active);starItems.innerHTML=(tab.items||[]).map((x,i)=>`<button class="star-item" data-msg="${escapeAttr(x.messageId||'')}"><b>${String(i+1).padStart(2,'0')}</b><span>${escapeHtml(x.label||x.preview||'Saved item')}</span><small>${escapeHtml(new Date(x.savedAt).toLocaleDateString())}</small></button>`).join('')||'<div class="picker-note">Nothing saved in this tab.</div>';persistSaved();}
-function saveStarMessage(id){const m=findMessage(id);if(!m)return;const tab=savedStore.tabs.find(t=>t.id===savedStore.active);if(!tab)return; if(tab.items.some(x=>x.messageId===id))return;tab.items.push({messageId:id,label:m.text||m.attachments?.[0]?.name||m.embeds?.[0]?.title||'Saved message',preview:(m.text||'media').slice(0,180),savedAt:Date.now()});renderSaved();}
-document.getElementById('starPanelBtn')?.addEventListener('click',()=>{starPanel.classList.toggle('hidden');renderSaved();});document.getElementById('starClose')?.addEventListener('click',()=>starPanel.classList.add('hidden'));starTabs?.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){savedStore.active=b.dataset.tab;renderSaved();}});document.getElementById('starAddTab')?.addEventListener('click',()=>{if(savedStore.tabs.length>=5)return alert('Maximum 5 tabs.');const name=prompt('Tab name','New tab');if(!name)return;const id='t'+Date.now();savedStore.tabs.push({id,name:name.slice(0,30),items:[]});savedStore.active=id;renderSaved();});document.getElementById('starRenameTab')?.addEventListener('click',()=>{const t=savedStore.tabs.find(t=>t.id===savedStore.active);const n=t&&prompt('Rename tab',t.name);if(n){t.name=n.slice(0,30);renderSaved();}});starItems?.addEventListener('click',e=>{const x=e.target.closest('.star-item');if(x?.dataset.msg){starPanel.classList.add('hidden');jumpToMessage(x.dataset.msg);}});renderSaved();
+function activeSavedTab(){return savedStore.tabs.find(t=>t.id===savedStore.active)}
+function renderSaved(){const tabs=savedStore.tabs||[];if(!tabs.length)savedStore={tabs:[{id:'t1',name:'Saved',items:[]}],active:'t1'};if(!tabs.some(t=>t.id===savedStore.active))savedStore.active=tabs[0].id;starTabs.innerHTML=tabs.map(t=>`<button class="star-tab ${t.id===savedStore.active?'active':''}" data-tab="${escapeAttr(t.id)}">${escapeHtml(t.name)}</button>`).join('');const tab=activeSavedTab();starItems.innerHTML=(tab.items||[]).map((x,i)=>`<div class="star-item" data-id="${escapeAttr(x.id)}" data-msg="${escapeAttr(x.messageId||'')}"><b>${String(i+1).padStart(2,'0')}</b><span title="${escapeAttr(x.url||x.name||x.label||'')}">${escapeHtml(x.label||x.name||x.preview||'Saved item')}</span><small>${escapeHtml(new Date(x.savedAt).toLocaleDateString())}</small><details class="star-item-menu"><summary>⋮</summary><div class="menu-pop"><button data-action="rename">Rename</button><button data-action="share">Share</button><button data-action="open">Open in new tab</button><button data-action="delete">Delete</button></div></details></div>`).join('')||'<div class="picker-note">Nothing saved in this tab.</div>';persistSaved();}
+function addSavedItem(item){const tab=activeSavedTab();if(!tab)return;tab.items.push({id:'s'+Date.now()+Math.random().toString(36).slice(2),savedAt:Date.now(),...item});renderSaved();}
+function saveStarMessage(id){const m=findMessage(id);if(!m)return;const tab=activeSavedTab();if(!tab||tab.items.some(x=>x.messageId===id))return;addSavedItem({messageId:id,label:m.text||m.attachments?.[0]?.name||m.embeds?.[0]?.title||'Saved message',preview:(m.text||'media').slice(0,180)});}
+document.getElementById('starPanelBtn')?.addEventListener('click',()=>{starPanel.classList.toggle('hidden');renderSaved();});document.getElementById('starClose')?.addEventListener('click',()=>starPanel.classList.add('hidden'));
+starTabs?.addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){savedStore.active=b.dataset.tab;renderSaved();}});
+document.getElementById('starAddTab')?.addEventListener('click',()=>{if(savedStore.tabs.length>=5)return alert('Maximum 5 tabs.');const name=prompt('Tab name','New tab');if(!name)return;const id='t'+Date.now();savedStore.tabs.push({id,name:name.slice(0,30),items:[]});savedStore.active=id;renderSaved();});
+document.getElementById('starRenameTab')?.addEventListener('click',()=>{const t=activeSavedTab();const n=t&&prompt('Rename tab',t.name);if(n){t.name=n.slice(0,30);renderSaved();}});
+document.getElementById('starDeleteTab')?.addEventListener('click',()=>{if(savedStore.tabs.length<=1)return alert('Keep at least one tab.');const t=activeSavedTab();if(t&&confirm(`Delete tab "${t.name}" and its saved items?`)){savedStore.tabs=savedStore.tabs.filter(x=>x.id!==t.id);savedStore.active=savedStore.tabs[0].id;renderSaved();}});
+document.getElementById('starAddLink')?.addEventListener('click',()=>{const url=prompt('Paste a link');if(!url)return;try{new URL(url);addSavedItem({label:url,name:url,url});}catch{alert('Enter a valid URL.')}});
+document.getElementById('starAddDevice')?.addEventListener('click',()=>document.getElementById('starDeviceInput')?.click());
+document.getElementById('starDeviceInput')?.addEventListener('change',e=>{for(const f of [...e.target.files||[]])addSavedItem({label:f.name,name:f.name,kind:'device-file',size:f.size});e.target.value='';});
+starItems?.addEventListener('click',async e=>{const row=e.target.closest('.star-item');if(!row)return;const item=activeSavedTab()?.items.find(x=>x.id===row.dataset.id);const action=e.target.dataset.action;if(action&&item){if(action==='rename'){const n=prompt('Rename item',item.label||item.name||'');if(n){item.label=n.slice(0,120);renderSaved();}}else if(action==='delete'){const t=activeSavedTab();t.items=t.items.filter(x=>x.id!==item.id);renderSaved();}else if(action==='open'){if(item.url)window.open(item.url,'_blank','noopener');else if(item.messageId){starPanel.classList.add('hidden');jumpToMessage(item.messageId);}}else if(action==='share'){const text=item.url||item.label||item.name||'';try{if(navigator.share)await navigator.share({title:'Frostlink saved item',text,url:item.url});else await navigator.clipboard.writeText(text);alert('Shared/copied.');}catch{}}return;}if(item?.messageId){starPanel.classList.add('hidden');jumpToMessage(item.messageId);}else if(item?.url)window.open(item.url,'_blank','noopener');});renderSaved();
 
-// Account UI (backend validates common-provider addresses and one account per email).
-const authDialog=document.getElementById('authDialog');document.getElementById('authBtn')?.addEventListener('click',()=>authDialog.showModal());document.getElementById('authClose')?.addEventListener('click',()=>authDialog.close());
-async function accountCall(action){const email=document.getElementById('authEmail').value.trim(),username=document.getElementById('authUsername').value.trim(),password=document.getElementById('authPassword').value;const status=document.getElementById('authStatus');status.textContent='Working…';try{const r=await fetch(`${API_BASE}/api/auth/${action}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,username,password})});const b=await r.json();if(!r.ok)throw new Error(b.error||'Account request failed');status.textContent=b.message||'Done';if(b.username){sender=b.username;localStorage.setItem('frostlink_sender',sender);if(b.token)localStorage.setItem('frostlink_auth_token',b.token);document.getElementById('nodeName').textContent=sender;nameInput.value=sender;}}catch(e){status.textContent=e.message;}}
+// Account gate: the application stays hidden until a real account session is verified.
+const authDialog=document.getElementById('authDialog');
+const PALETTE=['#61e8ff','#9b7bff','#ff79b0','#56efbd','#ffbf62','#ff7a7a','#73a8ff','#d38cff'];
+function colorForUser(name=''){let h=0;for(const c of String(name).toLowerCase())h=((h<<5)-h+c.charCodeAt(0))|0;return PALETTE[Math.abs(h)%PALETTE.length];}
+function applyUser(name){sender=name;localStorage.setItem('frostlink_sender',sender);document.getElementById('nodeName').textContent=sender;document.getElementById('accountNameSetting').textContent=sender+' · colour assigned automatically';}
+function applyMessageColours(){document.querySelectorAll('.message').forEach(el=>{const n=el.querySelector('.meta b')?.textContent||'';el.style.setProperty('--sender-color',colorForUser(n));});}
+new MutationObserver(applyMessageColours).observe(document.getElementById('messages'),{childList:true,subtree:true});
+document.getElementById('authBtn')?.addEventListener('click',()=>authDialog.showModal());document.getElementById('authClose')?.addEventListener('click',()=>authDialog.close());
+async function accountRequest(action,email,username,password){const r=await fetch(`${API_BASE}/api/auth/${action}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,username,password})});const b=await r.json();if(!r.ok)throw new Error(b.error||'Account request failed');return b;}
+function enterApp(b){if(!b?.token||!b?.username)throw new Error('Session was not created.');localStorage.setItem('frostlink_auth_token',b.token);applyUser(b.username);document.getElementById('authGate').classList.add('hidden');document.getElementById('appShell').classList.remove('hidden');authDialog?.close();applyMessageColours();}
+async function gateAction(action){const email=document.getElementById('gateEmail').value.trim(),username=document.getElementById('gateUsername').value.trim(),password=document.getElementById('gatePassword').value,status=document.getElementById('gateStatus');status.textContent='Working…';try{enterApp(await accountRequest(action,email,username,password));status.textContent='';}catch(e){status.textContent=e.message;}}
+document.getElementById('gateLogin')?.addEventListener('click',()=>gateAction('login'));document.getElementById('gateRegister')?.addEventListener('click',()=>gateAction('register'));
+async function verifyExistingSession(){const token=localStorage.getItem('frostlink_auth_token');if(!token)return;try{const r=await fetch(`${API_BASE}/api/auth/me`,{headers:{authorization:`Bearer ${token}`}});const b=await r.json();if(!r.ok)throw new Error();applyUser(b.username);document.getElementById('authGate').classList.add('hidden');document.getElementById('appShell').classList.remove('hidden');}catch{localStorage.removeItem('frostlink_auth_token');}}
+verifyExistingSession();
+async function accountCall(action){const email=document.getElementById('authEmail').value.trim(),username=document.getElementById('authUsername').value.trim(),password=document.getElementById('authPassword').value,status=document.getElementById('authStatus');status.textContent='Working…';try{const b=await accountRequest(action,email,username,password);enterApp(b);status.textContent=b.message||'Done';}catch(e){status.textContent=e.message;}}
 document.getElementById('authRegister')?.addEventListener('click',()=>accountCall('register'));document.getElementById('authLogin')?.addEventListener('click',()=>accountCall('login'));
+
