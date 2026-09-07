@@ -39,7 +39,7 @@ const io = new Server(server, {
 });
 
 app.use(cors({ origin: CORS_ORIGIN, credentials: false }));
-app.options('*', cors({ origin: CORS_ORIGIN }));
+app.options(/.*/, cors({ origin: CORS_ORIGIN }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
